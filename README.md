@@ -30,7 +30,7 @@ title: Table of Contents
 | `break-before` | `break-before: true` | New page before TOC in Pagina PDF |
 | `break-after` | `break-after: true` | New page after TOC in Pagina PDF |
 
-Defaults for title, max level, export visibility, and page breaks are in **Settings → Conspectus**.
+Defaults for title, max level, export visibility, and page breaks are in **Settings → Conspectus**. **Export settings** and **Import settings** there save or restore that configuration as `conspectus-settings.json`.
 
 The TOC is an unnumbered nested list with links to headings. The TOC title is not numbered by Ordinal Headings.
 

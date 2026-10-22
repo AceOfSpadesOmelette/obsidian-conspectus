@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type ConspectusPlugin from "./main";
+import { applyImportedSettings, mountSettingsFileControls } from "./settings-io";
 
 export type MaxHeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -127,5 +128,18 @@ export class ConspectusSettingTab extends PluginSettingTab {
 					this.plugin.refreshAllTocs();
 				}),
 			);
+
+		mountSettingsFileControls(containerEl, {
+			filename: "conspectus-settings.json",
+			pluginName: "Conspectus",
+			getSettings: () => this.plugin.settings,
+			normalize: normalizeSettings,
+			onImported: async (next) => {
+				applyImportedSettings(this.plugin.settings, next);
+				await this.plugin.saveSettings();
+				this.plugin.refreshAllTocs();
+				this.display();
+			},
+		});
 	}
 }
