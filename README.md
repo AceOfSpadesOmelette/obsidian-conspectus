@@ -37,3 +37,11 @@ Open **Settings → Conspectus**.
 | Page break after TOC (PDF) | Default page break after the block |
 
 Under **Backup**, **Export settings** and **Import settings** save or restore that configuration as `conspectus-settings.json`.
+
+## Support
+
+[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/aceofspadesomelette)
+
+## Star history
+
+[![Star History Chart](https://api.star-history.com/svg?repos=AceOfSpadesOmelette/obsidian-conspectus&type=Date)](https://www.star-history.com/#AceOfSpadesOmelette/obsidian-conspectus&Date)
