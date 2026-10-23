@@ -1,18 +1,10 @@
 # Conspectus
 
-Live in-note table of contents for Obsidian. Insert a `conspectus` code block; the TOC updates when headings change and appears in Pagina PDF exports.
-
-## Install
-
-Copy `main.js`, `manifest.json`, and `styles.css` into:
-
-`<vault>/.obsidian/plugins/conspectus/`
-
-Enable **Conspectus** in Community plugins.
+A live table of contents inside the note. Insert a `conspectus` block and it updates when headings change. The same block can appear in a Pagina PDF.
 
 ## Use
 
-Command palette → **Conspectus: Insert table of contents**, or add:
+Open the command palette and run **Insert table of contents**, or add this block:
 
 ````markdown
 ```conspectus
@@ -20,28 +12,28 @@ title: Table of Contents
 ```
 ````
 
-### Fence options
+The table of contents is an unnumbered nested list of links to headings. Its title is not numbered by Ordinal Headings.
+
+### Block options
 
 | Key | Example | Meaning |
 | --- | --- | --- |
-| `title` | `title: Contents` | H1 above the TOC (empty = no title) |
-| `level` | `level: 3` | Max heading level for this block |
-| `export` | `export: false` | Hide this TOC in Pagina PDF (still visible in-note) |
-| `break-before` | `break-before: true` | New page before TOC in Pagina PDF |
-| `break-after` | `break-after: true` | New page after TOC in Pagina PDF |
+| `title` | `title: Contents` | Heading above the list. Leave it empty for no title. |
+| `level` | `level: 3` | Deepest heading this block includes |
+| `export` | `export: false` | Hide this block in a Pagina PDF. It stays visible in the note. |
+| `break-before` | `break-before: true` | Start a new PDF page before the table of contents |
+| `break-after` | `break-after: true` | Start a new PDF page after the table of contents |
 
-Defaults for title, max level, export visibility, and page breaks are in **Settings → Conspectus**. **Export settings** and **Import settings** there save or restore that configuration as `conspectus-settings.json`.
+## Settings
 
-The TOC is an unnumbered nested list with links to headings. The TOC title is not numbered by Ordinal Headings.
+Open **Settings → Conspectus**.
 
+| Setting | What it does |
+| --- | --- |
+| Max heading level | Default deepest heading for new blocks |
+| Default title | Title used when a block does not set one |
+| Show TOC in PDF export | Include the table of contents in Pagina PDFs |
+| Page break before TOC (PDF) | Default page break before the block |
+| Page break after TOC (PDF) | Default page break after the block |
 
-
-## Develop
-
-```bash
-npm install
-npm run build
-npm test
-```
-
-CI runs build + Jest on push/PR. Tag a version matching `manifest.json` (for example `1.0.0`) to create a draft GitHub release with `main.js`, `manifest.json`, and `styles.css` when present.
+Under **Backup**, **Export settings** and **Import settings** save or restore that configuration as `conspectus-settings.json`.
