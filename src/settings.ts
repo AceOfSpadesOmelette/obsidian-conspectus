@@ -1,6 +1,11 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
 import type ConspectusPlugin from "./main";
-import { applyImportedSettings, mountSettingsFileControls } from "./settings-io";
+import {
+	applyImportedSettings,
+	downloadSettingsJson,
+	parseSettingsJson,
+	pickSettingsFile,
+} from "./settings-io";
 
 export type MaxHeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -44,6 +49,15 @@ export function normalizeSettings(raw: unknown): ConspectusSettings {
 	};
 }
 
+const HEADING_LEVEL_OPTIONS: Record<string, string> = {
+	"1": "Heading 1",
+	"2": "Heading 2",
+	"3": "Heading 3",
+	"4": "Heading 4",
+	"5": "Heading 5",
+	"6": "Heading 6",
+};
+
 export class ConspectusSettingTab extends PluginSettingTab {
 	plugin: ConspectusPlugin;
 
@@ -52,94 +66,98 @@ export class ConspectusSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-		containerEl.createEl("h2", { text: "Conspectus" });
+	override getControlValue(key: string): unknown {
+		if (key === "maxHeadingLevel") {
+			return String(this.plugin.settings.maxHeadingLevel);
+		}
+		return super.getControlValue(key);
+	}
 
-		new Setting(containerEl)
-			.setName("Max heading level")
-			.setDesc(
-				"Include headings up to this level in the table of contents. A conspectus block can override this with level: N.",
-			)
-			.addDropdown((d) => {
-				for (let i = 1; i <= 6; i++) {
-					d.addOption(String(i), `Heading ${i}`);
-				}
-				d.setValue(String(this.plugin.settings.maxHeadingLevel));
-				d.onChange(async (v) => {
-					this.plugin.settings.maxHeadingLevel = Number(v) as MaxHeadingLevel;
-					await this.plugin.saveSettings();
-					this.plugin.refreshAllTocs();
-				});
-			});
+	override async setControlValue(key: string, value: unknown): Promise<void> {
+		if (key === "maxHeadingLevel") {
+			const level = Number(value);
+			value = level >= 1 && level <= 6 ? level : this.plugin.settings.maxHeadingLevel;
+		}
+		await super.setControlValue(key, value);
+		this.plugin.refreshAllTocs();
+	}
 
-		new Setting(containerEl)
-			.setName("Default title")
-			.setDesc(
-				"H1 shown above the TOC. Leave blank for no title. Override per block with title: …",
-			)
-			.addText((t) =>
-				t
-					.setPlaceholder("Table of Contents")
-					.setValue(this.plugin.settings.defaultTitle)
-					.onChange(async (v) => {
-						this.plugin.settings.defaultTitle = v;
-						await this.plugin.saveSettings();
-						this.plugin.refreshAllTocs();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("Show TOC in PDF export")
-			.setDesc(
-				"Include the TOC when exporting with Pagina. Turn off to keep the TOC in the note but omit it from the PDF. Override per block with export: true|false.",
-			)
-			.addToggle((t) =>
-				t.setValue(this.plugin.settings.showInExport).onChange(async (v) => {
-					this.plugin.settings.showInExport = v;
-					await this.plugin.saveSettings();
-					this.plugin.refreshAllTocs();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Page break before TOC (PDF)")
-			.setDesc(
-				"When exporting with Pagina, start the TOC on a new page. Override per block with break-before: true|false.",
-			)
-			.addToggle((t) =>
-				t.setValue(this.plugin.settings.pageBreakBeforeToc).onChange(async (v) => {
-					this.plugin.settings.pageBreakBeforeToc = v;
-					await this.plugin.saveSettings();
-					this.plugin.refreshAllTocs();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Page break after TOC (PDF)")
-			.setDesc(
-				"When exporting with Pagina, start a new page after the TOC. Override per block with break-after: true|false.",
-			)
-			.addToggle((t) =>
-				t.setValue(this.plugin.settings.pageBreakAfterToc).onChange(async (v) => {
-					this.plugin.settings.pageBreakAfterToc = v;
-					await this.plugin.saveSettings();
-					this.plugin.refreshAllTocs();
-				}),
-			);
-
-		mountSettingsFileControls(containerEl, {
-			filename: "conspectus-settings.json",
-			pluginName: "Conspectus",
-			getSettings: () => this.plugin.settings,
-			normalize: normalizeSettings,
-			onImported: async (next) => {
-				applyImportedSettings(this.plugin.settings, next);
-				await this.plugin.saveSettings();
-				this.plugin.refreshAllTocs();
-				this.display();
+	override getSettingDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: "Max heading level",
+				desc: "Include headings up to this level in the table of contents. A conspectus block can override this with level: N.",
+				control: {
+					type: "dropdown",
+					key: "maxHeadingLevel",
+					options: HEADING_LEVEL_OPTIONS,
+				},
 			},
+			{
+				name: "Default title",
+				desc: "H1 shown above the TOC. Leave blank for no title. Override per block with title: …",
+				control: {
+					type: "text",
+					key: "defaultTitle",
+					placeholder: "Table of Contents",
+				},
+			},
+			{
+				name: "Show TOC in PDF export",
+				desc: "Include the TOC when exporting with Pagina. Turn off to keep the TOC in the note but omit it from the PDF. Override per block with export: true|false.",
+				control: { type: "toggle", key: "showInExport" },
+			},
+			{
+				name: "Page break before TOC (PDF)",
+				desc: "When exporting with Pagina, start the TOC on a new page. Override per block with break-before: true|false.",
+				control: { type: "toggle", key: "pageBreakBeforeToc" },
+			},
+			{
+				name: "Page break after TOC (PDF)",
+				desc: "When exporting with Pagina, start a new page after the TOC. Override per block with break-after: true|false.",
+				control: { type: "toggle", key: "pageBreakAfterToc" },
+			},
+			{
+				type: "group",
+				heading: "Backup",
+				items: [
+					{
+						name: "Export settings",
+						desc: "Download the current configuration as JSON.",
+						action: () => {
+							downloadSettingsJson(this.plugin.settings, "conspectus-settings.json");
+						},
+					},
+					{
+						name: "Import settings",
+						desc: "Replace the current configuration from a JSON file.",
+						action: () => {
+							this.importSettings();
+						},
+					},
+				],
+			},
+		];
+	}
+
+	private importSettings(): void {
+		pickSettingsFile((text) => {
+			try {
+				const next = parseSettingsJson(text, normalizeSettings);
+				applyImportedSettings(this.plugin.settings, next);
+				void this.plugin.saveSettings().then(
+					() => {
+						this.plugin.refreshAllTocs();
+						this.update();
+						new Notice("Conspectus settings imported");
+					},
+					() => {
+						new Notice("Could not import settings");
+					},
+				);
+			} catch (err) {
+				new Notice(err instanceof Error ? err.message : "Could not import settings");
+			}
 		});
 	}
 }

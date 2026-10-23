@@ -34,7 +34,7 @@ export default class ConspectusPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "insert-conspectus",
+			id: "insert-toc",
 			name: "Insert table of contents",
 			editorCallback: (editor: Editor) => {
 				const cursor = editor.getCursor();
