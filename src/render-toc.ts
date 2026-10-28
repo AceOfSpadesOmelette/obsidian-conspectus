@@ -90,6 +90,8 @@ export class ConspectusTocWidget extends MarkdownRenderChild {
 		const breakBefore = opts.breakBefore ?? settings.pageBreakBeforeToc;
 		const breakAfter = opts.breakAfter ?? settings.pageBreakAfterToc;
 		const showInExport = opts.showInExport ?? settings.showInExport;
+		const pageNumberLevel = opts.pageNumberLevel ?? settings.pageNumberLevel;
+		const showLeaders = opts.showLeaders ?? settings.showLeaders;
 		const headings = collectTocHeadings(this.app, this.sourcePath, maxLevel);
 
 		this.root.empty();
@@ -98,6 +100,8 @@ export class ConspectusTocWidget extends MarkdownRenderChild {
 		this.root.toggleClass("conspectus-toc-break-after", breakAfter);
 		this.root.toggleClass("conspectus-toc-hide-export", !showInExport);
 		this.root.setAttribute("data-conspectus-level", String(maxLevel));
+		this.root.setAttribute("data-conspectus-page-numbers", String(pageNumberLevel));
+		this.root.setAttribute("data-conspectus-leaders", showLeaders ? "true" : "false");
 
 		if (title) {
 			this.root.createEl("h1", {

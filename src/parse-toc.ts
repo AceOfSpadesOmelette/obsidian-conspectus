@@ -14,6 +14,10 @@ export interface TocBlockOptions {
 	breakAfter?: boolean;
 	/** Present when the fence sets `export: true|false`. */
 	showInExport?: boolean;
+	/** 0 hides page numbers. 1–6 numbers entries up to that level. */
+	pageNumberLevel?: 0 | MaxHeadingLevel;
+	/** Present when the fence sets `leaders: true|false`. */
+	showLeaders?: boolean;
 }
 
 function parseBool(raw: string): boolean | undefined {
@@ -67,6 +71,25 @@ export function parseTocSource(source: string): TocBlockOptions {
 		if (exportMatch) {
 			const b = parseBool(exportMatch[1] ?? "");
 			if (b !== undefined) opts.showInExport = b;
+			continue;
+		}
+
+		const pageMatch = /^page-numbers\s*:\s*(.+)$/i.exec(trimmed);
+		if (pageMatch) {
+			const raw = (pageMatch[1] ?? "").trim().toLowerCase();
+			if (raw === "off" || raw === "none" || raw === "false" || raw === "0") {
+				opts.pageNumberLevel = 0;
+			} else {
+				const n = Number(raw);
+				if (n >= 1 && n <= 6) opts.pageNumberLevel = n as MaxHeadingLevel;
+			}
+			continue;
+		}
+
+		const leadersMatch = /^leaders\s*:\s*(.+)$/i.exec(trimmed);
+		if (leadersMatch) {
+			const b = parseBool(leadersMatch[1] ?? "");
+			if (b !== undefined) opts.showLeaders = b;
 		}
 	}
 	return opts;

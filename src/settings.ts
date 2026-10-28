@@ -17,6 +17,10 @@ export interface ConspectusSettings {
 	showInExport: boolean;
 	pageBreakBeforeToc: boolean;
 	pageBreakAfterToc: boolean;
+	/** 0 hides page numbers. 1–6 numbers entries up to that heading level. */
+	pageNumberLevel: 0 | MaxHeadingLevel;
+	/** Dotted leaders before the page number. The number stays when this is off. */
+	showLeaders: boolean;
 }
 
 export const DEFAULT_SETTINGS: ConspectusSettings = {
@@ -25,6 +29,8 @@ export const DEFAULT_SETTINGS: ConspectusSettings = {
 	showInExport: true,
 	pageBreakBeforeToc: false,
 	pageBreakAfterToc: false,
+	pageNumberLevel: 0,
+	showLeaders: true,
 };
 
 export function normalizeSettings(raw: unknown): ConspectusSettings {
@@ -46,8 +52,26 @@ export function normalizeSettings(raw: unknown): ConspectusSettings {
 		pageBreakAfterToc: Boolean(
 			data.pageBreakAfterToc ?? DEFAULT_SETTINGS.pageBreakAfterToc,
 		),
+		pageNumberLevel: normalizePageNumberLevel(data.pageNumberLevel),
+		showLeaders: data.showLeaders ?? DEFAULT_SETTINGS.showLeaders,
 	};
 }
+
+function normalizePageNumberLevel(value: unknown): 0 | MaxHeadingLevel {
+	const level = Number(value);
+	if (level >= 1 && level <= 6) return level as MaxHeadingLevel;
+	return 0;
+}
+
+const PAGE_NUMBER_OPTIONS: Record<string, string> = {
+	"0": "Off",
+	"1": "Heading 1",
+	"2": "Headings 1–2",
+	"3": "Headings 1–3",
+	"4": "Headings 1–4",
+	"5": "Headings 1–5",
+	"6": "Headings 1–6",
+};
 
 const HEADING_LEVEL_OPTIONS: Record<string, string> = {
 	"1": "Heading 1",
@@ -70,6 +94,9 @@ export class ConspectusSettingTab extends PluginSettingTab {
 		if (key === "maxHeadingLevel") {
 			return String(this.plugin.settings.maxHeadingLevel);
 		}
+		if (key === "pageNumberLevel") {
+			return String(this.plugin.settings.pageNumberLevel);
+		}
 		return super.getControlValue(key);
 	}
 
@@ -77,6 +104,10 @@ export class ConspectusSettingTab extends PluginSettingTab {
 		if (key === "maxHeadingLevel") {
 			const level = Number(value);
 			value = level >= 1 && level <= 6 ? level : this.plugin.settings.maxHeadingLevel;
+		}
+		if (key === "pageNumberLevel") {
+			const level = Number(value);
+			value = level >= 1 && level <= 6 ? level : 0;
 		}
 		await super.setControlValue(key, value);
 		this.plugin.refreshAllTocs();
@@ -116,6 +147,20 @@ export class ConspectusSettingTab extends PluginSettingTab {
 				name: "Page break after TOC (PDF)",
 				desc: "When exporting with Pagina, start a new page after the TOC. Override per block with break-after: true|false.",
 				control: { type: "toggle", key: "pageBreakAfterToc" },
+			},
+			{
+				name: "Page numbers up to heading level",
+				desc: "In a Pagina PDF, number contents entries through this level. Off leaves the list unchanged. Override per block with page-numbers: N or page-numbers: off.",
+				control: {
+					type: "dropdown",
+					key: "pageNumberLevel",
+					options: PAGE_NUMBER_OPTIONS,
+				},
+			},
+			{
+				name: "Dot leaders",
+				desc: "Draw dotted leaders before the page number. The number stays at the right when this is off. Override per block with leaders: true|false.",
+				control: { type: "toggle", key: "showLeaders" },
 			},
 			{
 				type: "group",

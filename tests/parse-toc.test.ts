@@ -14,6 +14,8 @@ title: Contents
 break-before: true
 break-after: no
 export: off
+page-numbers: 2
+leaders: no
 # ignored
 unknown: x`),
 		).toEqual({
@@ -22,7 +24,13 @@ unknown: x`),
 			breakBefore: true,
 			breakAfter: false,
 			showInExport: false,
+			pageNumberLevel: 2,
+			showLeaders: false,
 		});
+	});
+
+	it("accepts page-numbers off", () => {
+		expect(parseTocSource("page-numbers: off")).toEqual({ pageNumberLevel: 0 });
 	});
 
 	it("allows empty title", () => {
