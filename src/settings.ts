@@ -21,6 +21,12 @@ export interface ConspectusSettings {
 	pageNumberLevel: 0 | MaxHeadingLevel;
 	/** Dotted leaders before the page number. The number stays when this is off. */
 	showLeaders: boolean;
+	/** Extra indent, in em, for each heading level below the first. */
+	indentPerLevel: number;
+	/** When true, Heading 1 lines up with the table of contents title. */
+	alignHeading1: boolean;
+	/** When false, contents entries show heading text as written, including dollar signs. */
+	renderMath: boolean;
 }
 
 export const DEFAULT_SETTINGS: ConspectusSettings = {
@@ -31,6 +37,9 @@ export const DEFAULT_SETTINGS: ConspectusSettings = {
 	pageBreakAfterToc: false,
 	pageNumberLevel: 0,
 	showLeaders: true,
+	indentPerLevel: 1.25,
+	alignHeading1: false,
+	renderMath: false,
 };
 
 export function normalizeSettings(raw: unknown): ConspectusSettings {
@@ -54,7 +63,17 @@ export function normalizeSettings(raw: unknown): ConspectusSettings {
 		),
 		pageNumberLevel: normalizePageNumberLevel(data.pageNumberLevel),
 		showLeaders: data.showLeaders ?? DEFAULT_SETTINGS.showLeaders,
+		indentPerLevel: normalizeIndent(data.indentPerLevel),
+		alignHeading1: data.alignHeading1 === true,
+		renderMath: data.renderMath === true,
 	};
+}
+
+function normalizeIndent(value: unknown): number {
+	const raw = typeof value === "string" ? value.trim().replace(/em$/i, "") : value;
+	const n = Number(raw);
+	if (!Number.isFinite(n) || n < 0 || n > 8) return DEFAULT_SETTINGS.indentPerLevel;
+	return Math.round(n * 100) / 100;
 }
 
 function normalizePageNumberLevel(value: unknown): 0 | MaxHeadingLevel {
@@ -97,6 +116,9 @@ export class ConspectusSettingTab extends PluginSettingTab {
 		if (key === "pageNumberLevel") {
 			return String(this.plugin.settings.pageNumberLevel);
 		}
+		if (key === "indentPerLevel") {
+			return String(this.plugin.settings.indentPerLevel);
+		}
 		return super.getControlValue(key);
 	}
 
@@ -109,6 +131,7 @@ export class ConspectusSettingTab extends PluginSettingTab {
 			const level = Number(value);
 			value = level >= 1 && level <= 6 ? level : 0;
 		}
+		if (key === "indentPerLevel") value = normalizeIndent(value);
 		await super.setControlValue(key, value);
 		this.plugin.refreshAllTocs();
 	}
@@ -161,6 +184,25 @@ export class ConspectusSettingTab extends PluginSettingTab {
 				name: "Dot leaders",
 				desc: "Draw dotted leaders before the page number. The number stays at the right when this is off. Override per block with leaders: true|false.",
 				control: { type: "toggle", key: "showLeaders" },
+			},
+			{
+				name: "Indent per level",
+				desc: "Extra indent, in em, for each level below the first. With alignment off, Heading 1 keeps the list indent and deeper levels step in from there. 1.25 puts the next level one step further in.",
+				control: {
+					type: "text",
+					key: "indentPerLevel",
+					placeholder: "1.25",
+				},
+			},
+			{
+				name: "Align heading 1 with the title",
+				desc: "On places Heading 1 on the same line as the table of contents title. Off keeps the list indent.",
+				control: { type: "toggle", key: "alignHeading1" },
+			},
+			{
+				name: "Render math in table of contents",
+				desc: "Typeset math in contents entries. Off leaves the heading text as written.",
+				control: { type: "toggle", key: "renderMath" },
 			},
 			{
 				type: "group",

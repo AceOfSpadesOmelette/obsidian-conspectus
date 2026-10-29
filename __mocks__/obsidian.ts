@@ -42,6 +42,29 @@ export class Notice {
 	constructor(_message: string | DocumentFragment, _timeout?: number) {}
 }
 
+export class MarkdownRenderer {
+	static async render(
+		_app: unknown,
+		markdown: string,
+		el: HTMLElement,
+		_sourcePath: string,
+		_component: unknown,
+	): Promise<void> {
+		const source = markdown.replace(/^\u200B/, "");
+		if (/^\d+\.\s/.test(markdown) && !markdown.startsWith("\u200B")) {
+			const list = document.createElement("ol");
+			const item = document.createElement("li");
+			item.textContent = source.replace(/^\d+\.\s/, "");
+			list.appendChild(item);
+			el.appendChild(list);
+			return;
+		}
+		const paragraph = document.createElement("p");
+		paragraph.innerHTML = source.replace(/\$([^$]+)\$/g, '<span class="math">$1</span>');
+		el.appendChild(paragraph);
+	}
+}
+
 export class MarkdownRenderChild {
 	containerEl: HTMLElement;
 	constructor(containerEl: HTMLElement) {

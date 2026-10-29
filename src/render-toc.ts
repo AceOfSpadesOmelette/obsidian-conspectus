@@ -1,5 +1,5 @@
 import type { App, MarkdownPostProcessorContext } from "obsidian";
-import { MarkdownRenderChild } from "obsidian";
+import { MarkdownRenderChild, MarkdownRenderer } from "obsidian";
 import { collectTocHeadings, type TocHeading } from "./headings";
 import { parseTocSource } from "./parse-toc";
 import type { ConspectusSettings } from "./settings";
@@ -92,10 +92,12 @@ export class ConspectusTocWidget extends MarkdownRenderChild {
 		const showInExport = opts.showInExport ?? settings.showInExport;
 		const pageNumberLevel = opts.pageNumberLevel ?? settings.pageNumberLevel;
 		const showLeaders = opts.showLeaders ?? settings.showLeaders;
+		const indentEm = settings.indentPerLevel;
 		const headings = collectTocHeadings(this.app, this.sourcePath, maxLevel);
 
 		this.root.empty();
 		this.root.addClass("conspectus-toc");
+		this.root.style.setProperty("--conspectus-indent-step", `${indentEm}em`);
 		this.root.toggleClass("conspectus-toc-break-before", breakBefore);
 		this.root.toggleClass("conspectus-toc-break-after", breakAfter);
 		this.root.toggleClass("conspectus-toc-hide-export", !showInExport);
@@ -120,7 +122,8 @@ export class ConspectusTocWidget extends MarkdownRenderChild {
 		}
 
 		const list = this.root.createEl("ul", { cls: "conspectus-toc-list" });
-		buildNestedList(list, headings);
+		const links = buildNestedList(list, headings, settings.alignHeading1);
+		void fillTocEntryLinks(this.app, links, this.sourcePath, this, settings.renderMath);
 	}
 }
 
@@ -128,9 +131,21 @@ export class ConspectusTocWidget extends MarkdownRenderChild {
  * Nested unnumbered list. Depth is relative to the shallowest heading in the set.
  * Skipped levels nest under the previous item.
  */
-function buildNestedList(rootUl: HTMLElement, headings: TocHeading[]): void {
+function buildNestedList(
+	rootUl: HTMLElement,
+	headings: TocHeading[],
+	alignHeading1: boolean,
+): HTMLAnchorElement[] {
 	const minLevel = Math.min(...headings.map((h) => h.level));
+	const levelOffset = Math.max(0, minLevel - 1);
+	const listIndent = alignHeading1 ? "0px" : "3ch";
+	const rootIndent =
+		levelOffset === 0
+			? listIndent
+			: `calc(${listIndent} + var(--conspectus-indent-step, 1.25em) * ${levelOffset})`;
+	rootUl.style.setProperty("--conspectus-root-indent", rootIndent);
 	const listStack: HTMLElement[] = [rootUl];
+	const links: HTMLAnchorElement[] = [];
 
 	for (const h of headings) {
 		const depth = h.level - minLevel;
@@ -152,9 +167,9 @@ function buildNestedList(rootUl: HTMLElement, headings: TocHeading[]): void {
 			cls: `conspectus-toc-item conspectus-toc-h${h.level}`,
 		});
 		// Hash-only data-href matches Obsidian same-note [[#Heading]] links for Pagina.
-		li.createEl("a", {
+		// Math is rendered only when that setting is on.
+		const link = li.createEl("a", {
 			cls: "internal-link",
-			text: h.heading,
 			attr: {
 				href: `#${h.heading}`,
 				"data-href": `#${h.heading}`,
@@ -163,5 +178,57 @@ function buildNestedList(rootUl: HTMLElement, headings: TocHeading[]): void {
 				rel: "noopener nofollow",
 			},
 		});
+		link.dataset.conspectusMarkdown = h.heading;
+		links.push(link);
 	}
+	return links;
+}
+
+/** Render math when asked. Otherwise leave the heading text as written, so `1. ` is not a list. */
+export async function fillTocEntryLinks(
+	app: App,
+	links: readonly HTMLAnchorElement[],
+	sourcePath: string,
+	component: MarkdownRenderChild,
+	renderMath = false,
+): Promise<void> {
+	if (!renderMath) {
+		for (const link of links) link.textContent = link.dataset.conspectusMarkdown ?? "";
+		return;
+	}
+	await Promise.all(links.map((link) => fillTocEntryLink(app, link, sourcePath, component)));
+}
+
+async function fillTocEntryLink(
+	app: App,
+	link: HTMLAnchorElement,
+	sourcePath: string,
+	component: MarkdownRenderChild,
+): Promise<void> {
+	const markdown = link.dataset.conspectusMarkdown ?? "";
+	if (!markdown) return;
+	try {
+		// A leading number such as "1. Title" would become a real list and indent the line.
+		await MarkdownRenderer.render(app, `\u200B${markdown}`, link, sourcePath, component);
+		unwrapRenderedParagraphs(link);
+		stripLeadingMark(link);
+		if (!(link.textContent ?? "").replace(/\u200B/g, "").trim()) link.textContent = markdown;
+	} catch {
+		link.textContent = markdown;
+	}
+}
+
+function stripLeadingMark(el: HTMLElement): void {
+	const walker = el.ownerDocument.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+	const first = walker.nextNode();
+	if (first && first.textContent?.startsWith("\u200B")) {
+		first.textContent = first.textContent.slice(1);
+	}
+}
+
+function unwrapRenderedParagraphs(el: HTMLElement): void {
+	el.querySelectorAll(":scope > p").forEach((paragraph) => {
+		while (paragraph.firstChild) el.insertBefore(paragraph.firstChild, paragraph);
+		paragraph.remove();
+	});
 }

@@ -37,6 +37,9 @@ Open **Settings → Conspectus**.
 | Show TOC in PDF export | Include the table of contents in Pagina PDFs |
 | Page numbers up to heading level | Number contents entries through this level in a Pagina PDF. Off leaves the list unchanged. |
 | Dot leaders | Dotted leaders before those page numbers |
+| Indent per level | Extra indent, in em, for each level below the first. With alignment off, Heading 1 keeps the list indent and deeper levels step in from there. The default 1.25 puts the next level one step further in. |
+| Align heading 1 with the title | On places Heading 1 on the same line as the title. Off, the default, keeps the list indent. |
+| Render math in table of contents | Typeset math in contents entries. Off, the default, leaves the heading text as written. |
 | Page break before TOC (PDF) | Default page break before the block |
 | Page break after TOC (PDF) | Default page break after the block |
 
