@@ -1,7 +1,7 @@
 {
 	"id": "conspectus",
 	"name": "Conspectus",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"minAppVersion": "1.13.0",
 	"description": "Live in-note table of contents from a conspectus code block, with configurable max heading level.",
 	"author": "AceOfSpadesOmelette",

@@ -1,6 +1,6 @@
 {
 	"name": "conspectus",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "Conspectus: live in-note table of contents for Obsidian.",
 	"main": "main.js",
 	"type": "module",
